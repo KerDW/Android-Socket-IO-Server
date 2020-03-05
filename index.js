@@ -16,6 +16,10 @@ io = socketIO(server);
 io.on('connection', function (socket) {
     console.log("client conn")
 
+    socket.on('disconnect', function (message) {
+        console.log("client left");
+    });
+
     socket.on('message', function (message) {
         console.log(message);
     });
