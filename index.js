@@ -1,4 +1,6 @@
-const uuid = require('uuid/v4');
+const crypto = require('crypto');
+const axios = require('axios')
+const { v4: uuid } = require('uuid');
 var express = require('express'),
     app = express(),
     http = require('http'),
@@ -19,18 +21,37 @@ var clients = []
 
 io.on('connection', function (socket) {
 
-    socket.on('connect', function (){
-        console.log('client joined')
+    console.log('client joined')
+
+    socket.on('join', function (name, password){
         socket.id = uuid();
         clients.push(socket.id)
+
+        var user_password = crypto.createHash('sha256').update(password).digest('base64');
+
+        socket.name = name
+        socket.password = user_password
+
+        axios.post('http://localhost/laravelrestapi/public/api/users', {
+            name: name,
+            password: user_password
+        })
+        .then((res) => {
+            console.log('user added')
+        })
+        .catch((error) => {
+            console.log(error.message)
+            console.log(error.data.message)
+        })
     });
 
     socket.on('disconnect', function () {
         console.log("client left");
-        clients.filter(item => item !== socket.id);
+        clients.splice(clients.indexOf(socket.id), 1)
     });
 
     socket.on('message', function (message) {
-        console.log(message);
+        console.log(socket.name+": "+ message);
+        console.log(clients)
     });
 });
