@@ -17,10 +17,11 @@ console.log('socket server running on port 5000')
 io = socketIO(server);
 
 var waiting = []
+var room_number = 1;
 
 io.on('connection', function (socket) {
 
-    console.log('client joined')
+    console.log('client joined, connected clients:')
     console.log(Object.keys(io.sockets.connected).length)
 
     socket.on('join', function (name, password){
@@ -30,14 +31,23 @@ io.on('connection', function (socket) {
         socket.name = name
         socket.password = user_password
 
-        if(Object.keys(io.sockets.connected).length > 2 && waiting.length > 0){
-            io.to(`${socketId}`).emit('ready')
-            // io.to(waiting.shift().id).emit('ready') remove oldest waiting socket and ready him
-            // check if you can emit to with socket.id
+        // if this socket can be paired with one that is waiting
+        if(waiting.length > 0){
+            oldest_waiting_socket = waiting.shift()
+            room_name = 'room'+room_number
+
+            // place clients in common room
+            socket.join(room_name);
+            oldest_waiting_socket.join(room_name);
+
+            room_number++
+
+            io.in(room_name).emit('ready') // ready clients
         } else {
             waiting.push(socket)
         }
 
+        // add users to db
         axios.post('http://localhost/laravelrestapi/public/api/users', {
             name: name,
             password: user_password
@@ -57,6 +67,9 @@ io.on('connection', function (socket) {
 
     socket.on('message', function (message) {
         console.log(socket.name+": "+ message);
-        io.to(`${socketId}`).emit('message', socket.name+": "+ message);
+        
+        var client_room = Object.values(socket.rooms)[1]
+        // send message to paired client (room)
+        socket.to(client_room).emit('message', socket.name+": "+ message);
     });
 });
