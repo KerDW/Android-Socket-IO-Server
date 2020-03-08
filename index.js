@@ -26,8 +26,7 @@ io.on('connection', function (socket) {
 
     socket.on('join', function (name, password){
 
-        // if this socket can be paired with one that is waiting which is not himself
-        if(waiting.length > 0 && !waiting.includes(socket)){
+        function addUser(){
 
             var hashed_password = crypto.createHash('sha256').update(password).digest('base64');
 
@@ -46,6 +45,12 @@ io.on('connection', function (socket) {
                 console.log(error.message)
             })
 
+        }
+
+        // if this socket can be paired with one that is waiting which is not himself
+        if(waiting.length > 0 && !waiting.includes(socket)){
+            addUser();
+
             oldest_waiting_socket = waiting.shift()
             room_name = 'room'+room_number
 
@@ -57,6 +62,7 @@ io.on('connection', function (socket) {
 
             io.in(room_name).emit('ready') // ready clients
         } else if (!waiting.includes(socket)){
+            addUser();
             waiting.push(socket)
         }
     });
