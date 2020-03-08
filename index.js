@@ -26,13 +26,26 @@ io.on('connection', function (socket) {
 
     socket.on('join', function (name, password){
 
-        var user_password = crypto.createHash('sha256').update(password).digest('base64');
+        // if this socket can be paired with one that is waiting which is not himself
+        if(waiting.length > 0 && !waiting.includes(socket)){
 
-        socket.name = name
-        socket.password = user_password
+            var hashed_password = crypto.createHash('sha256').update(password).digest('base64');
 
-        // if this socket can be paired with one that is waiting
-        if(waiting.length > 0){
+            socket.name = name
+            socket.password = hashed_password
+
+            // add user to db
+            axios.post('http://localhost/laravelrestapi/public/api/users', {
+                name: name,
+                password: hashed_password
+            })
+            .then((res) => {
+                socket.user_id = res.data.id
+            })
+            .catch((error) => {
+                console.log(error.message)
+            })
+
             oldest_waiting_socket = waiting.shift()
             room_name = 'room'+room_number
 
@@ -43,26 +56,17 @@ io.on('connection', function (socket) {
             room_number++
 
             io.in(room_name).emit('ready') // ready clients
-        } else {
+        } else if (!waiting.includes(socket)){
             waiting.push(socket)
         }
-
-        // add users to db
-        axios.post('http://localhost/laravelrestapi/public/api/users', {
-            name: name,
-            password: user_password
-        })
-        .then((res) => {
-            console.log('user added')
-        })
-        .catch((error) => {
-            console.log(error.message)
-            console.log(error.data.message)
-        })
     });
 
     socket.on('disconnect', function () {
-        console.log("client left");
+        // remove user from db (temporary to avoid clogging the db)
+        axios.delete('http://localhost/laravelrestapi/public/api/users/' + socket.user_id)
+        .catch((error) => {
+            console.log(error.message)
+        })
     });
 
     socket.on('message', function (message) {
