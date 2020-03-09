@@ -60,6 +60,12 @@ io.on('connection', function (socket) {
         }
     });
 
+    socket.on('newRoom', function () {
+
+        io.emit('roomUpdate')
+
+    });
+
     socket.on('disconnect', function () {
         // remove user from db (temporary to avoid clogging the db)
         axios.delete('http://localhost/laravelrestapi/public/api/users/' + socket.user_id)
