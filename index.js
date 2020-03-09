@@ -17,59 +17,55 @@ console.log('socket server running on port 5000')
 io = socketIO(server);
 
 var waiting = []
-var room_number = 1;
 
 io.on('connection', function (socket) {
+
+    // https://socket.io/docs/emit-cheatsheet/
 
     console.log('client joined, connected clients:')
     console.log(Object.keys(io.sockets.connected).length)
 
     socket.on('join', function (name, password){
 
-        function addUser(){
+        var hashed_password = crypto.createHash('sha256').update(password).digest('base64');
 
-            var hashed_password = crypto.createHash('sha256').update(password).digest('base64');
+        socket.name = name
+        socket.password = hashed_password
 
-            socket.name = name
-            socket.password = hashed_password
+        // add user to db
+        axios.post('http://localhost/laravelrestapi/public/api/users', {
+            name: name,
+            password: hashed_password
+        })
+        .then((res) => {
+            console.log('user added')
+            socket.user_id = res.data.id
+        })
+        .catch((error) => {
+            console.log(error.message)
+        })
+    });
 
-            // add user to db
-            axios.post('http://localhost/laravelrestapi/public/api/users', {
-                name: name,
-                password: hashed_password
-            })
-            .then((res) => {
-                socket.user_id = res.data.id
-            })
-            .catch((error) => {
-                console.log(error.message)
-            })
+    // leave any previous room the client had joined, join a new one and check if this room is ready
+    socket.on('joinRoom', function (room_name, max_capacity) {
 
-        }
+        socket.leaveAll()
+        socket.join(room_name)
+        io.emit('roomUpdate')
 
-        // if this socket can be paired with one that is waiting which is not himself
-        if(waiting.length > 0 && !waiting.includes(socket)){
-            addUser();
+        room_clients_count = io.sockets.adapter.rooms[room_name].length
 
-            oldest_waiting_socket = waiting.shift()
-            room_name = 'room'+room_number
-
-            // place clients in common room
-            socket.join(room_name);
-            oldest_waiting_socket.join(room_name);
-
-            room_number++
-
-            io.in(room_name).emit('ready') // ready clients
-        } else if (!waiting.includes(socket)){
-            addUser();
-            waiting.push(socket)
+        if(room_clients_count == max_capacity){
+            io.in(room_name).emit('ready')
         }
     });
 
     socket.on('disconnect', function () {
         // remove user from db (temporary to avoid clogging the db)
         axios.delete('http://localhost/laravelrestapi/public/api/users/' + socket.user_id)
+        .then((res) => {
+            console.log('user removed')
+        })
         .catch((error) => {
             console.log(error.message)
         })
