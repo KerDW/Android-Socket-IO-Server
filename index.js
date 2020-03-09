@@ -61,7 +61,7 @@ io.on('connection', function (socket) {
     });
 
     socket.on('newRoom', function () {
-
+        console.log('room created')
         io.emit('roomUpdate')
 
     });
