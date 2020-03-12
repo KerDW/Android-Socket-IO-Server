@@ -47,21 +47,34 @@ io.on('connection', function (socket) {
     });
 
     // leave any previous room the client had joined, join a new one and check if this room is ready
-    socket.on('joinRoom', function (room_name, max_capacity) {
+    socket.on('joinRoom', function (room_id, room_name, max_capacity) {
 
         socket.leaveAll()
         socket.join(room_name)
-        io.emit('roomUpdate')
 
-        room_clients_count = io.sockets.adapter.rooms[room_name].length
+        // add room to user
+        axios.put('http://localhost/laravelrestapi/public/api/users/' + socket.user_id, {
+            room_id: room_id,
+        })
+        .then((res) => {
 
-        if(room_clients_count == max_capacity){
-            io.in(room_name).emit('ready')
-        }
+            console.log(res)
+
+            io.emit('roomUpdate')
+
+            room_clients_count = io.sockets.adapter.rooms[room_name].length
+
+            if(room_clients_count == max_capacity){
+                io.in(room_name).emit('ready')
+            }
+            
+        })
+        .catch((error) => {
+            console.log(error)
+        })
     });
 
     socket.on('newRoom', function () {
-        console.log('room created')
         io.emit('roomUpdate')
 
     });
