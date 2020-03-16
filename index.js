@@ -77,6 +77,12 @@ io.on('connection', function (socket) {
 
     });
 
+    // emit marker to sockets in the same room
+    socket.on('newMarker', function (lat, long, username) {
+        var room = Object.keys(socket.rooms);
+        socket.to(room[0]).emit('marker', lat, long, username)
+    });
+
     socket.on('disconnect', function () {
         // remove user from db (temporary to avoid clogging the db)
         axios.delete('http://localhost/laravelrestapi/public/api/users/' + socket.user_id)
