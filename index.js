@@ -25,6 +25,9 @@ io.on('connection', function (socket) {
     console.log('client joined, connected clients:')
     console.log(Object.keys(io.sockets.connected).length)
 
+    // assign a color for its marker
+    socket.color = Math.floor(Math.random() * 360)
+
     socket.on('join', function (name, password){
 
         var hashed_password = crypto.createHash('sha256').update(password).digest('base64');
@@ -80,7 +83,7 @@ io.on('connection', function (socket) {
     // emit marker to sockets in the same room
     socket.on('newMarker', function (lat, long, username) {
         var room = Object.keys(socket.rooms);
-        socket.to(room[0]).emit('marker', lat, long, username)
+        socket.to(room[0]).emit('marker', lat, long, username, socket.color)
     });
 
     socket.on('disconnect', function () {
