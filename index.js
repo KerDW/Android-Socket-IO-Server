@@ -70,9 +70,9 @@ io.on('connection', function (socket) {
                 })
                 .then(function(){
                     io.emit('roomUpdate')
+                    io.in(room_name).emit('ready')
                 })
 
-                io.in(room_name).emit('ready')
             }
             
         })
