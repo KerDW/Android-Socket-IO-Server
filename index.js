@@ -61,11 +61,17 @@ io.on('connection', function (socket) {
         })
         .then((res) => {
 
-            io.emit('roomUpdate')
-
             room_clients_count = io.sockets.adapter.rooms[room_name].length
 
             if(room_clients_count == max_capacity){
+
+                axios.put('http://localhost/laravelrestapi/public/api/rooms/' + room_id, {
+                    busy: true
+                })
+                .then(function(){
+                    io.emit('roomUpdate')
+                })
+
                 io.in(room_name).emit('ready')
             }
             
