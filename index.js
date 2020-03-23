@@ -70,10 +70,32 @@ io.on('connection', function (socket) {
                 })
                 .then(function(){
                     io.emit('roomUpdate')
-                    io.in(room_name).emit('ready')
+
+                    var charset = "ABCDEFGHIJKLMNOPQRSTUVWYX";
+
+                    console.log(charset.charAt(Math.floor(Math.random() * charset.length)))
+
+                    var randomLetter = charset.charAt(Math.floor(Math.random() * charset.length))
+                    var requirement;
+
+                    switch(Math.floor(Math.random() * 3)){
+                        case 0:
+                            requirement = 'containing'
+                        break;
+                        case 1:
+                            requirement = 'ending with'
+                        break;
+                        case 2:
+                            requirement = 'starting with'
+                        break;
+                    }
+
+                    io.in(room_name).emit('ready', randomLetter, requirement)
                 })
 
             }
+
+            io.emit('roomUpdate')
             
         })
         .catch((error) => {
@@ -103,11 +125,11 @@ io.on('connection', function (socket) {
         })
     });
 
-    socket.on('message', function (message) {
-        console.log(socket.name+": "+ message);
+    // socket.on('message', function (message) {
+    //     console.log(socket.name+": "+ message);
         
-        var client_room = Object.values(socket.rooms)[1]
-        // send message to paired client (room)
-        socket.to(client_room).emit('message', socket.name+": "+ message);
-    });
+    //     var client_room = Object.values(socket.rooms)[1]
+    //     // send message to paired client (room)
+    //     socket.to(client_room).emit('message', socket.name+": "+ message);
+    // });
 });
