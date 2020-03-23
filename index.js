@@ -55,6 +55,10 @@ io.on('connection', function (socket) {
         socket.leaveAll()
         socket.join(room_name)
 
+        // save the room id on the socket while the user is there
+        socket.room_id = room_id
+        socket.room_name = room_name
+
         // add room to user
         axios.put('http://localhost/laravelrestapi/public/api/users/' + socket.user_id, {
             room_id: room_id,
@@ -105,6 +109,24 @@ io.on('connection', function (socket) {
 
     socket.on('newRoom', function () {
         io.emit('roomUpdate')
+    });
+
+    socket.on('gameFinished', function () {
+
+        axios.put('http://localhost/laravelrestapi/public/api/users/' + socket.user_id, {
+            room_id: null,
+        })
+        
+        // if the room only has one user left set it as not busy
+        if(io.sockets.adapter.rooms[socket.room_name].length == 1){
+            axios.put('http://localhost/laravelrestapi/public/api/rooms/' + socket.room_id, {
+                busy: false
+            })
+        }
+
+        socket.leaveAll()
+        socket.room_id = null
+        socket.room_name = null
 
     });
 
