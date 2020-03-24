@@ -75,7 +75,7 @@ io.on('connection', function (socket) {
                 .then(function(){
                     io.emit('roomUpdate')
 
-                    var charset = "ABCDEFGHIJKLMNOPQRSTUVWYX";
+                    var charset = "AEIOU";
 
                     console.log(charset.charAt(Math.floor(Math.random() * charset.length)))
 
