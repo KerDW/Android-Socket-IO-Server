@@ -117,8 +117,8 @@ io.on('connection', function (socket) {
             room_id: null,
         })
         
-        // if the room only has one user left set it as not busy
-        if(io.sockets.adapter.rooms[socket.room_name].length == 1){
+        // if the room doesn't exist or it only has one user left set it as not busy
+        if(!io.sockets.adapter.rooms[socket.room_name] || io.sockets.adapter.rooms[socket.room_name].length == 1){
             axios.put('http://localhost/laravelrestapi/public/api/rooms/' + socket.room_id, {
                 busy: false
             })
