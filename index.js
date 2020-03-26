@@ -16,7 +16,7 @@ console.log('socket server running on port 5000')
 
 io = socketIO(server);
 
-var waiting = []
+// var waiting = []
 
 io.on('connection', function (socket) {
 
@@ -65,9 +65,14 @@ io.on('connection', function (socket) {
         })
         .then((res) => {
 
+            room = io.sockets.adapter.rooms[room_name]
             room_clients_count = io.sockets.adapter.rooms[room_name].length
 
             if(room_clients_count == max_capacity){
+
+                // since the game has started and I am certain that I will need these variables, I set them to zero or reset them to use them later
+                room.highestScoreRecorded = 0
+                room.usersChecked = 0
 
                 axios.put('http://localhost/laravelrestapi/public/api/rooms/' + room_id, {
                     busy: true
@@ -113,14 +118,22 @@ io.on('connection', function (socket) {
 
     socket.on('gameFinished', function () {
 
+        var room = io.sockets.adapter.rooms[socket.room_name]
+
+        // attach user to room
         axios.put('http://localhost/laravelrestapi/public/api/users/' + socket.user_id, {
             room_id: null,
         })
-        
+        .catch((error) => {
+            console.log(error.message)
+        })
         // if the room doesn't exist or it only has one user left set it as not busy
-        if(!io.sockets.adapter.rooms[socket.room_name] || io.sockets.adapter.rooms[socket.room_name].length == 1){
+        if(!room || room.length == 1){
             axios.put('http://localhost/laravelrestapi/public/api/rooms/' + socket.room_id, {
                 busy: false
+            })
+            .catch((error) => {
+                console.log(error.message)
             })
         }
 
@@ -134,6 +147,23 @@ io.on('connection', function (socket) {
     socket.on('newMarker', function (lat, long, username) {
         var room = Object.keys(socket.rooms);
         socket.to(room[0]).emit('marker', lat, long, username, socket.color)
+    });
+
+    // check who is the user with the most points and send that information to all the sockets
+    socket.on('points', function (points) {
+        var room = io.sockets.adapter.rooms[socket.room_name]
+
+        if(points >= room.highestScoreRecorded){
+            room.highestScoreRecorded = points
+            room.winner = socket.name
+        }
+
+        room.usersChecked++
+
+        if(room.usersChecked == room.length){
+            io.in(socket.room_name).emit("winner", room.winner, room.highestScoreRecorded)
+        }
+        
     });
 
     socket.on('disconnect', function () {
